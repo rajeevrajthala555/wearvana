@@ -111,12 +111,12 @@ export default function AdminLogin() {
                 try {
                   setError('')
                   setLoading(true)
-                  
+
                   // First test database connection
                   try {
                     const testRes = await fetch('/api/auth/test-db')
                     const testContentType = testRes.headers.get('content-type') || ''
-                    
+
                     if (!testContentType.includes('application/json')) {
                       const testText = await testRes.text()
                       console.error('Test DB route returned HTML:', testText.substring(0, 500))
@@ -124,9 +124,9 @@ export default function AdminLogin() {
                       setLoading(false)
                       return
                     }
-                    
+
                     const testData = await testRes.json()
-                    
+
                     if (!testRes.ok) {
                       setError(`Database error: ${testData.error || 'Unknown error'}. Make sure the database is set up.`)
                       setLoading(false)
@@ -138,15 +138,14 @@ export default function AdminLogin() {
                     setLoading(false)
                     return
                   }
-                  
-                  // Create admin user - try both routes
+
+                  // Create admin user
                   let res
-                  let routeUsed = '/api/auth/create-admin'
-                  
+
                   try {
                     res = await fetch('/api/auth/create-admin', {
                       method: 'POST',
-                      headers: { 
+                      headers: {
                         'Content-Type': 'application/json',
                         'Accept': 'application/json'
                       },
@@ -156,68 +155,49 @@ export default function AdminLogin() {
                         password: 'admin123'
                       })
                     })
-                    
-                    // If first route returns HTML (404), try alternative route
-                    const contentType = res.headers.get('content-type') || ''
-                    if (!contentType.includes('application/json')) {
-                      console.log('First route failed, trying alternative route...')
-                      routeUsed = '/api/admin/create'
-                      res = await fetch('/api/admin/create', {
-                        method: 'POST',
-                        headers: { 
-                          'Content-Type': 'application/json',
-                          'Accept': 'application/json'
-                        },
-                        body: JSON.stringify({
-                          email: 'admin@werevana.com',
-                          name: 'Admin',
-                          password: 'admin123'
-                        })
-                      })
-                    }
                   } catch (fetchError) {
                     console.error('Fetch error:', fetchError)
                     setError(`Network error: ${fetchError.message}. Make sure the server is running at http://localhost:3000`)
                     setLoading(false)
                     return
                   }
-                    
-                    // Check if response is JSON
-                    const contentType = res.headers.get('content-type') || ''
-                    const isJSON = contentType.includes('application/json')
-                    
-                    if (!isJSON) {
-                      // Response is HTML (likely an error page)
-                      const text = await res.text()
-                      console.error('API returned HTML instead of JSON:', text.substring(0, 500))
-                      setError(`Server error: The API route returned an HTML page instead of JSON. This usually means:
+
+                  // Check if response is JSON
+                  const contentType = res.headers.get('content-type') || ''
+                  const isJSON = contentType.includes('application/json')
+
+                  if (!isJSON) {
+                    // Response is HTML (likely an error page)
+                    const text = await res.text()
+                    console.error('API returned HTML instead of JSON:', text.substring(0, 500))
+                    setError(`Server error: The API route returned an HTML page instead of JSON. This usually means:
 1. The route doesn't exist or has a compilation error
 2. The server needs to be restarted
 3. Check the server terminal for errors
 
 Status: ${res.status} ${res.statusText}
 Try restarting the server: Stop (Ctrl+C) and run "npm run dev" again`)
-                      return
-                    }
-                    
-                    // Parse JSON response
-                    let data
-                    try {
-                      data = await res.json()
-                    } catch (parseError) {
-                      console.error('Failed to parse JSON:', parseError)
-                      setError('Failed to parse server response. Check console for details.')
-                      return
-                    }
-                    
-                    if (res.ok && data.success) {
-                      setEmail('admin@werevana.com')
-                      setPassword('admin123')
-                      setError('')
-                      alert('✅ Admin user created! You can now login with:\nEmail: admin@werevana.com\nPassword: admin123')
-                    } else {
-                      setError('Error: ' + (data.error || 'Failed to create admin user') + (data.details ? '\nDetails: ' + JSON.stringify(data.details, null, 2) : ''))
-                    }
+                    return
+                  }
+
+                  // Parse JSON response
+                  let data
+                  try {
+                    data = await res.json()
+                  } catch (parseError) {
+                    console.error('Failed to parse JSON:', parseError)
+                    setError('Failed to parse server response. Check console for details.')
+                    return
+                  }
+
+                  if (res.ok && data.success) {
+                    setEmail('admin@werevana.com')
+                    setPassword('admin123')
+                    setError('')
+                    alert('✅ Admin user created! You can now login with:\nEmail: admin@werevana.com\nPassword: admin123')
+                  } else {
+                    setError('Error: ' + (data.error || 'Failed to create admin user') + (data.details ? '\nDetails: ' + JSON.stringify(data.details, null, 2) : ''))
+                  }
                 } catch (error) {
                   console.error('Error creating admin user:', error)
                   setError('Error creating admin user: ' + error.message)
